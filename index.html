@@ -999,74 +999,147 @@ function handleImgUpload(e, i) {
   reader.readAsDataURL(file);
 }
 
-// ─── UNSPLASH IMAGES ─────────────────────────────────────────────────────
-const locationMap = {Indoor:'indoor home cozy',Studio:'studio photography',Wiese:'meadow nature green',Feld:'field golden wheat',Wald:'forest woods trees',Düne:'sand dunes beach'};
-const shootingMap = {Familie:'family portrait',Newborn:'newborn baby',Babybauch:'maternity pregnancy',Business:'business professional headshot',Hochzeit:'wedding couple',Paar:'couple portrait romantic'};
-const styleMap = {Clean:'minimalist clean white light',Boho:'boho natural earthy warm',Chic:'chic elegant fashion',Editorial:'editorial fashion artistic',Vintage:'vintage film warm tones',Modern:'modern minimal contemporary'};
+// ─── INSPIRATION IMAGES ──────────────────────────────────────────────────
+// source.unsplash.com was shut down. We use two reliable alternatives:
+// 1. images.unsplash.com/photo/... — curated photo IDs per shooting category (no API key needed)
+// 2. picsum.photos — reliable fallback with fixed seeds per category
 
-function getUnsplashUrls() {
-  const loc = locationMap[state.location] || state.location;
-  const shoot = shootingMap[state.shooting] || state.shooting;
-  const sty = styleMap[state.style] || state.style;
-  const kw = encodeURIComponent(`${shoot},${loc},${sty}`);
+const PHOTO_POOLS = {
+  Familie: [
+    'photo-1609220136736-443140cffec6','photo-1543342384-1f1350e27861',
+    'photo-1476703993599-0035a21b17a9','photo-1581579186913-45ac3e6efe93',
+    'photo-1516627145497-ae6968895b74','photo-1542037104857-ffbb0b9155fb',
+  ],
+  Newborn: [
+    'photo-1519689680058-324335c77eba','photo-1544126592-807ade215a0b',
+    'photo-1507003211169-0a1dd7228f2d','photo-1555252333-9f8e92e65df9',
+    'photo-1591035897819-f4bdf739f446','photo-1530685932526-48ec92998eaa',
+  ],
+  Babybauch: [
+    'photo-1561154464-82e9adf32764','photo-1555252333-9f8e92e65df9',
+    'photo-1517841905240-472988babdf9','photo-1520880867055-1e30d1cb001c',
+  ],
+  Business: [
+    'photo-1507003211169-0a1dd7228f2d','photo-1573497019940-1c28c88b4f3e',
+    'photo-1521737604893-d14cc237f11d','photo-1560250097-0b93528c311a',
+    'photo-1556157382-97eda2d62296','photo-1519085360753-af0119f7cbe7',
+  ],
+  Hochzeit: [
+    'photo-1519741497674-611481863552','photo-1511285560929-80b456fea0bc',
+    'photo-1465495976277-4387d4b0b4c6','photo-1606800052052-a08af7148866',
+    'photo-1529636798458-92182e662485','photo-1518049362265-d5b2a6467637',
+  ],
+  Paar: [
+    'photo-1529634806980-85c3dd6d34ac','photo-1474552226712-ac0f0961a954',
+    'photo-1494774157365-9e04c6720e47','photo-1521603510043-4a0cab8fb789',
+    'photo-1518199266791-5375a83190b7','photo-1516589091380-5d8e87df6999',
+  ],
+};
+
+const STYLE_SEEDS = {
+  Clean:[10,20,30,40], Boho:[50,60,70,80], Chic:[90,100,110,120],
+  Editorial:[130,140,150,160], Vintage:[170,180,190,200], Modern:[210,220,230,240],
+};
+const LOCATION_SEEDS = {
+  Indoor:[1,2,3,4], Studio:[5,6,7,8], Wiese:[11,12,13,14],
+  Feld:[15,16,17,18], Wald:[21,22,23,24], Düne:[25,26,27,28],
+};
+
+function getInspirationUrls() {
+  const pool = PHOTO_POOLS[state.shooting];
   const t = Date.now();
-  return [
-    `https://source.unsplash.com/600x800/?${kw}&sig=${t}1`,
-    `https://source.unsplash.com/600x800/?${kw}&sig=${t}2`,
-    `https://source.unsplash.com/600x800/?${kw}&sig=${t}3`,
-    `https://source.unsplash.com/600x800/?${kw}&sig=${t}4`,
-  ];
+  if (pool && pool.length >= 4) {
+    // Shuffle pool deterministically based on style+location combo
+    const seed = (state.style.length + state.location.length) % pool.length;
+    const picked = [];
+    for (let i = 0; i < 4; i++) picked.push(pool[(seed + i) % pool.length]);
+    return picked.map(id =>
+      `https://images.unsplash.com/${id}?w=600&h=800&fit=crop&crop=faces,center&auto=format&q=80`
+    );
+  }
+  // Fallback: picsum with category-aware seeds
+  const styleSeeds = STYLE_SEEDS[state.style] || [1,2,3,4];
+  const locSeeds = LOCATION_SEEDS[state.location] || [0,0,0,0];
+  return styleSeeds.map((s, i) =>
+    `https://picsum.photos/seed/${s + locSeeds[i] + Math.floor(t/300000)}/600/800`
+  );
 }
 
 // ─── AI OUTFITS ───────────────────────────────────────────────────────────
-const STATIC_OUTFITS = {
-  'Mann': [
-    {piece:"Leinenhemd",details:"Slim Fit, naturweißes Leinen, leicht strukturiert",color_hex:"#f0e8dc"},
-    {piece:"Chino",details:"Slim Fit, sandfarben, Baumwoll-Twill",color_hex:"#c0a882"},
-    {piece:"Derby-Schnürschuh",details:"Vollleder, cognac, rahmengenäht",color_hex:"#a07050"},
-    {piece:"Stoffgürtel",details:"Gewebter Baumwolle, naturbraun",color_hex:"#8c6c42"},
-  ],
-  'Frau': [
-    {piece:"Leinenkleid",details:"A-Linie, Crinkle-Leinen, nude, midi",color_hex:"#d4bfa3"},
-    {piece:"Weite Bluse",details:"Oversize, Musselin, cremeweiß, V-Ausschnitt",color_hex:"#f0e8dc"},
-    {piece:"Weite Hose",details:"Crêpe, hohe Taille, sandfarben",color_hex:"#c8b090"},
-    {piece:"Sandalen",details:"Leder, flach, naturbraun, Riemchen",color_hex:"#a0856a"},
-  ],
-  'Pärchen (Frau + Mann)': [
-    {piece:"Kleid Frau",details:"Midi, fließend, Viskose, ivory",color_hex:"#f0e8dc"},
-    {piece:"Leinenhemd Mann",details:"Slim Fit, Leinen, sandfarben, Ärmel gerollt",color_hex:"#c0a882"},
-    {piece:"Hose Mann",details:"Slim Chino, cognac, Baumwoll-Twill",color_hex:"#a07050"},
-    {piece:"Sandalen Frau",details:"Flach, Leder, naturbraun, Riemchen",color_hex:"#a0856a"},
-  ],
-  'Familie (Mama, Papa, Kind)': [
-    {piece:"Leinenkleid Mama",details:"Weicher Fall, Crinkle-Leinen, nude",color_hex:"#d4bfa3"},
-    {piece:"Leinenhemd Papa",details:"Slim Fit, sandfarbenes Leinen",color_hex:"#c0a882"},
-    {piece:"Smock-Kleid Kind",details:"Rüschendetail, zartes Muster, ivory",color_hex:"#e8d5c0"},
-    {piece:"Sandalen Familie",details:"Leder, flach, naturbraun",color_hex:"#a0856a"},
-  ],
-  'Mama mit Baby': [
-    {piece:"Strick-Wrap Mama",details:"Oversize, Merinowolle, crème",color_hex:"#f0e8dc"},
-    {piece:"Wickelbluse Mama",details:"Fließend, Viskose, sandfarben, stillfreundlich",color_hex:"#d4bfa3"},
-    {piece:"Mousseline-Tuch Baby",details:"Weicher Stoff, natürliche Töne",color_hex:"#e5d5c5"},
-    {piece:"Weiche Söckchen Baby",details:"Bio-Baumwolle, ivory mit Rüsche",color_hex:"#f5ede0"},
-  ],
-  'schwangere Frau': [
-    {piece:"Umstandskleid",details:"Empire-Schnitt, Jersey, sandfarben, fließend",color_hex:"#d4bfa3"},
-    {piece:"Wrap-Kleid",details:"Gewickelt, Viskose, nude, dehnbar",color_hex:"#c8b090"},
-    {piece:"Oversize-Bluse",details:"Leinen, cremeweiß, weit geschnitten",color_hex:"#f0e8dc"},
-    {piece:"Flache Sandalen",details:"Leder, cognac, bequem, Riemchen",color_hex:"#a07050"},
-  ],
-  default: [
-    {piece:"Leinenbluse",details:"Oversize, Leinen, naturweiß",color_hex:"#f0e8dc"},
-    {piece:"Weites Kleid",details:"Fließend, Viskose, sand",color_hex:"#d4bfa3"},
-    {piece:"Strukturierter Blazer",details:"Leinen-Mix, creme-beige",color_hex:"#c8b090"},
-    {piece:"Weite Hose",details:"Crêpe, hohe Taille, ivory",color_hex:"#e5d5c5"},
-  ]
+
+// Style-specific clothing per gender — changes with every style selection
+const STYLE_PIECES = {
+  Clean:     { f:['Midi-Kleid, Baumwolle, glatt geschnitten, schlicht','Weite Hose, Crêpe, hohe Taille, weiß','Tailliertes Top, Baumwolle, minimalistisch','Loafer, Leder, cremeweiß, flach'],
+               m:['Hemd, Oxford, tailliert, weiß, bügelfrisch','Chino, Slim Fit, hellgrau, Baumwoll-Twill','Sneaker, Leder, weiß, minimalistisch','Strukturierter Blazer, leichter Woll-Mix'] },
+  Boho:      { f:['Maxikleid, Leinen, Crinkle, fließend, midi','Fransenweste, Baumwolle, oversized','Westernstiefelette, Veloursleder, cognac','Makramé-Gürtel, handgemacht, naturfarben'],
+               m:['Leinenhemd, Oversize, ungebügelt, naturweiß','Straight-Jeans, gewaschen, heller Denim','Chelsea-Boot, Veloursleder, cognac','Geflochtener Gürtel, Leder, naturbraun'] },
+  Chic:      { f:['Bleistiftrock, Crêpe, midi, tailliert','Seidenbluse, leicht glänzend, V-Ausschnitt','Spitze Pumps, Lackleder, nude, Absatz','Strukturierter Blazer, Leinen-Mix, creme'],
+               m:['Turtleneck, Feinripp, tailliert, dunkel','Anzugshose, Slim Fit, dunkelgrau, Wolle','Oxford-Schnürschuh, poliertes Leder, schwarz','Slim-Blazer, Schurwolle, anthrazit'] },
+  Editorial: { f:['Statement-Kleid, Taft, strukturiert, Midi','Oversize-Trenchcoat, Gabardine, sand','Ankle-Boot, Blockabsatz, matt, spitz','Lederhandschuhe, dünn, creme, Akzent'],
+               m:['Hemd, Seide-Mix, oversized, offen getragen','Weite Hose, Plissee, high waist, beige','Derby-Schuh, zweifarbig, Kontrast-Leder','Langer Mantel, Wolle, strukturiert, sand'] },
+  Vintage:   { f:['Midi-Wickelkleid, Viskose, Retro-Print','Plisseerock, Satin, knielang, pastell','Mary-Jane-Pumps, Leder, cognac, Spange','Spitzenkragen, Baumwolle, ecru, abnehmbar'],
+               m:['Hemd, Chambray, Button-down, sandfarbig','Cordhose, Straight, sandfarben, Vintage-Cut','Budapester Schnürschuh, Leder, braun','Weste, Tweed, strukturiert, creme'] },
+  Modern:    { f:['Culotte, Jersey, schwarz, tailliert','Ripp-Top, tailliert, weiß, minimalistisch','Chunky Sneaker, Leder, weiß, Plateau','Oversized-Jacke, Neopren, strukturiert'],
+               m:['T-Shirt, Premium-Jersey, weiß, tailliert','Jogger-Pant, Technikstoff, schwarz, slim','Chunky Sneaker, Mesh, weiß, clean','Bomberjacke, Nylon, olivgrün, modern'] },
 };
 
+function buildStaticOutfits() {
+  const p = state.persons;
+  const sd = STYLE_PIECES[state.style] || STYLE_PIECES.Boho;
+
+  if (p === 'Pärchen (Frau + Mann)') return [
+    {piece:'Kleid Frau',       details: sd.f[0]},
+    {piece:'Hemd Mann',        details: sd.m[0]},
+    {piece:'Hose Mann',        details: sd.m[1]},
+    {piece:'Schuhe Frau',      details: sd.f[2]},
+  ];
+  if (p === 'zwei Frauen') return [
+    {piece:'Outfit Person 1',  details: sd.f[0]},
+    {piece:'Outfit Person 2',  details: sd.f[1]},
+    {piece:'Schuhe Person 1',  details: sd.f[2]},
+    {piece:'Schuhe Person 2',  details: sd.f[3]||sd.f[2]},
+  ];
+  if (p === 'zwei Männer') return [
+    {piece:'Outfit Person 1',  details: sd.m[0]},
+    {piece:'Outfit Person 2',  details: sd.m[1]},
+    {piece:'Schuhe Person 1',  details: sd.m[2]},
+    {piece:'Accessoire',       details: sd.m[3]},
+  ];
+  if (p === 'Familie (Mama, Papa, Kind)') return [
+    {piece:'Outfit Mama',      details: sd.f[0]},
+    {piece:'Outfit Papa',      details: sd.m[0]},
+    {piece:'Kind',             details:'Passend zur Palette, Baumwolle, bequem'},
+    {piece:'Schuhe Familie',   details:'Flach, Leder, einheitlicher Ton'},
+  ];
+  if (p === 'Mama mit Baby') return [
+    {piece:'Kleid Mama',       details: sd.f[0]},
+    {piece:'Bluse Mama',       details:'Fließend, Viskose, stillfreundlich, Wickel'},
+    {piece:'Strampler Baby',   details:'Bio-Baumwolle, weich, einfarbig'},
+    {piece:'Schuhe Mama',      details: sd.f[2]},
+  ];
+  if (p === 'schwangere Frau') return [
+    {piece:'Umstandskleid',    details:'Empire-Schnitt, Jersey, fließend, bequem'},
+    {piece:'Wrap-Kleid',       details:'Gewickelt, Viskose, dehnbar, elegant'},
+    {piece:'Oversize-Bluse',   details:'Leinen, weit geschnitten, locker'},
+    {piece:'Schuhe',           details:'Flach, Leder, bequem, Riemchen'},
+  ];
+  const isMale = p === 'Mann';
+  const pieces = isMale ? sd.m : sd.f;
+  const labels = isMale
+    ? ['Hemd','Hose','Schuhe','Accessoire']
+    : ['Kleid / Oberteil','Hose / Rock','Schuhe','Accessoire'];
+  return pieces.map((details, i) => ({piece: labels[i] || `Teil ${i+1}`, details}));
+}
+
+// Force palette colors onto outfits — regardless of source
+function applyPaletteColors(outfits) {
+  const pal = state.palette.length >= 4 ? state.palette : [...state.palette, '#c9a87a','#d4bfa3','#8c6c42','#f0e8dc'];
+  return outfits.map((o, i) => ({ ...o, color_hex: pal[i] || pal[0] }));
+}
+
 async function fetchOutfits() {
-  if(!state.useAI) return getStaticOutfits();
-  const paletteStr = state.palette.join(', ');
+  if (!state.useAI) return applyPaletteColors(buildStaticOutfits());
+  const paletteStr = state.palette.length ? state.palette.join(', ') : '#d4bfa3, #c0a882, #e8d5c0, #a0856a';
   const prompt = `Du bist ein professioneller Fashion-Stylist für Fotoshootings.
 
 Kontext:
@@ -1074,17 +1147,15 @@ Kontext:
 - Shooting-Art: ${state.shooting}
 - Location: ${state.location}
 - Stilrichtung: ${state.style}
-- Farbpalette: ${paletteStr}
 
-Aufgabe: Erstelle EXAKT 4 Outfit-Vorschläge, die perfekt zu den oben genannten Personen passen.
-WICHTIG: Die Outfits MÜSSEN zum Geschlecht und der Anzahl der Personen passen.
-- Bei einer einzelnen Frau: 4 Kleidungsstücke / Accessoires für sie
-- Bei einem einzelnen Mann: 4 männliche Kleidungsstücke (Hemd, Hose, Schuhe, Accessoire)
-- Bei Pärchen/Gruppen: Outfits für jede Person einzeln benennen (z.B. "Kleid Frau", "Hemd Mann")
-- KEINE Kleider für Männer, KEINE maskulinen Teile für Frauen
+REGELN (alle zwingend):
+1. Genau 4 Outfit-Teile, erkennbar im Stil "${state.style}"
+2. Kleidung passend zum Geschlecht — KEINE Kleider für Männer
+3. Bei Gruppen/Paaren: Outfits pro Person benennen
+4. "color_hex" wird IGNORIERT — setze trotzdem einen Wert
 
-Antworte NUR mit einem JSON-Array, absolut kein Text oder Markdown davor/danach:
-[{"piece":"Bezeichnung Person + Teil","details":"Material, Schnitt, max 10 Wörter","color_hex":"#xxxxxx"}]`;
+Antworte NUR mit JSON-Array, kein Text davor/danach:
+[{"piece":"Person + Kleidungsstück","details":"Material, Schnitt, max 8 Wörter","color_hex":"#000000"}]`;
   try {
     const res = await fetch('/api/clothing', {
       method: 'POST',
@@ -1096,16 +1167,18 @@ Antworte NUR mit einem JSON-Array, absolut kein Text oder Markdown davor/danach:
       })
     });
     const data = await res.json();
-    const text = data.content?.map(c=>c.text||'').join('') || '';
-    const clean = text.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    if(Array.isArray(parsed) && parsed.length) return parsed.slice(0,4);
-  } catch(e){}
-  return getStaticOutfits();
+    const text = data.content?.map(c => c.text||'').join('') || '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed) && parsed.length) {
+        return applyPaletteColors(parsed.slice(0, 4));
+      }
+    }
+  } catch(e) { console.warn('Outfit API failed, using static:', e); }
+  return applyPaletteColors(buildStaticOutfits());
 }
-function getStaticOutfits() {
-  return STATIC_OUTFITS[state.persons] || STATIC_OUTFITS[state.shooting] || STATIC_OUTFITS.default;
-}
+
 
 // ─── GENERATE ─────────────────────────────────────────────────────────────
 async function generateMoodboard() {
@@ -1165,26 +1238,41 @@ async function generateMoodboard() {
   setStatus('Bilder werden geladen…');
   const photosEl = document.getElementById('mbPhotosEl');
   photosEl.innerHTML = '';
-  let imgSrcs = [];
-  if(state.useOwn) {
-    imgSrcs = state.imageBase64.map(b => b || '');
+
+  if (state.useOwn) {
+    state.imageBase64.map(b => b || '').forEach(src => {
+      const cell = document.createElement('div');
+      cell.className = 'mb-photo-cell';
+      if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        cell.appendChild(img);
+      } else {
+        cell.style.background = 'color-mix(in srgb, var(--mb-ink) 6%, transparent)';
+      }
+      photosEl.appendChild(cell);
+    });
   } else {
-    imgSrcs = getUnsplashUrls();
-  }
-  imgSrcs.forEach(src => {
-    const cell = document.createElement('div');
-    cell.className = 'mb-photo-cell';
-    if(src) {
+    // Inspiration mode: load images with error fallback to picsum
+    const urls = getInspirationUrls();
+    urls.forEach((src, idx) => {
+      const cell = document.createElement('div');
+      cell.className = 'mb-photo-cell';
       const img = document.createElement('img');
-      img.src = src;
       img.alt = '';
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      img.onerror = () => {
+        // fallback to picsum on load failure
+        img.onerror = null;
+        img.src = `https://picsum.photos/seed/${idx + 100 + state.style.length}/600/800`;
+      };
+      img.src = src;
       cell.appendChild(img);
-    } else {
-      cell.style.background = 'color-mix(in srgb, var(--mb-ink) 5%, transparent)';
-    }
-    photosEl.appendChild(cell);
-  });
+      photosEl.appendChild(cell);
+    });
+  }
 
   // Outfits
   setStatus(state.useAI ? 'Outfit-Vorschläge werden generiert…' : 'Outfits werden vorbereitet…');
