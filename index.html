@@ -481,12 +481,21 @@
     min-height: 0;
     background: color-mix(in srgb, var(--mb-ink) 5%, transparent);
     border-radius: 2px;
+    position: relative;
   }
   .mb-photo-cell img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+  .mb-photo-tint {
+    position: absolute;
+    inset: 0;
+    mix-blend-mode: multiply;
+    opacity: 0.32;
+    pointer-events: none;
+    border-radius: 2px;
   }
 
   /* Clothing */
@@ -1255,8 +1264,12 @@ async function generateMoodboard() {
       photosEl.appendChild(cell);
     });
   } else {
-    // Inspiration mode: load images with error fallback to picsum
+    // Inspiration mode: load images with palette tint overlay + picsum fallback
     const urls = getInspirationUrls();
+    // Use palette colors for tinting — cycle through available colors
+    const tintColors = state.palette.length >= 4
+      ? state.palette
+      : ['#d4bfa3','#c0a882','#e8d5c0','#a0856a'];
     urls.forEach((src, idx) => {
       const cell = document.createElement('div');
       cell.className = 'mb-photo-cell';
@@ -1264,12 +1277,16 @@ async function generateMoodboard() {
       img.alt = '';
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       img.onerror = () => {
-        // fallback to picsum on load failure
         img.onerror = null;
         img.src = `https://picsum.photos/seed/${idx + 100 + state.style.length}/600/800`;
       };
       img.src = src;
+      // Colour tint overlay using palette
+      const tint = document.createElement('div');
+      tint.className = 'mb-photo-tint';
+      tint.style.background = tintColors[idx % tintColors.length];
       cell.appendChild(img);
+      cell.appendChild(tint);
       photosEl.appendChild(cell);
     });
   }
