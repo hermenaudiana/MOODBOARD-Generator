@@ -1,0 +1,13 @@
+.vercel
+node_modules
+.env
+.env.local
+.DS_Store
+*.log
+.cache
+.config
+.local
+.npm
+.npm-global
+.npmrc
+.wget-hsts
