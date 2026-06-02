@@ -749,6 +749,23 @@
       </div>
     </div>
 
+    <!-- PERSONEN -->
+    <div class="section">
+      <div class="section-title">Personen im Shooting</div>
+      <label style="margin-bottom:6px">Wer wird fotografiert?</label>
+      <div class="btn-group" id="personsGroup">
+        <button class="btn-chip active" data-val="Frau">Frau</button>
+        <button class="btn-chip" data-val="Mann">Mann</button>
+        <button class="btn-chip" data-val="Pärchen (Frau + Mann)">Pärchen</button>
+        <button class="btn-chip" data-val="zwei Frauen">2 Frauen</button>
+        <button class="btn-chip" data-val="zwei Männer">2 Männer</button>
+        <button class="btn-chip" data-val="Familie (Mama, Papa, Kind)">Familie</button>
+        <button class="btn-chip" data-val="Mama mit Baby">Mama + Baby</button>
+        <button class="btn-chip" data-val="schwangere Frau">Schwanger</button>
+        <button class="btn-chip" data-val="Gruppe">Gruppe</button>
+      </div>
+    </div>
+
     <!-- BILDER -->
     <div class="section">
       <div class="section-title">Bilder</div>
@@ -837,6 +854,7 @@ const state = {
   location: 'Indoor',
   shooting: 'Familie',
   style: 'Boho',
+  persons: 'Frau',
 };
 
 // ─── COLOR HELPERS ───────────────────────────────────────────────────────
@@ -957,7 +975,7 @@ function setupGroup(groupId, stateKey) {
     state[stateKey] = e.target.dataset.val;
   });
 }
-setupGroup('locationGroup','location'); setupGroup('shootingGroup','shooting'); setupGroup('styleGroup','style');
+setupGroup('locationGroup','location'); setupGroup('shootingGroup','shooting'); setupGroup('styleGroup','style'); setupGroup('personsGroup','persons');
 
 // ─── TOGGLES ─────────────────────────────────────────────────────────────
 function toggleSwitch(el, key) {
@@ -982,8 +1000,15 @@ function handleImgUpload(e, i) {
 }
 
 // ─── UNSPLASH IMAGES ─────────────────────────────────────────────────────
+const locationMap = {Indoor:'indoor home cozy',Studio:'studio photography',Wiese:'meadow nature green',Feld:'field golden wheat',Wald:'forest woods trees',Düne:'sand dunes beach'};
+const shootingMap = {Familie:'family portrait',Newborn:'newborn baby',Babybauch:'maternity pregnancy',Business:'business professional headshot',Hochzeit:'wedding couple',Paar:'couple portrait romantic'};
+const styleMap = {Clean:'minimalist clean white light',Boho:'boho natural earthy warm',Chic:'chic elegant fashion',Editorial:'editorial fashion artistic',Vintage:'vintage film warm tones',Modern:'modern minimal contemporary'};
+
 function getUnsplashUrls() {
-  const kw = [state.style, state.shooting, state.location].map(s=>s.toLowerCase()).join(',');
+  const loc = locationMap[state.location] || state.location;
+  const shoot = shootingMap[state.shooting] || state.shooting;
+  const sty = styleMap[state.style] || state.style;
+  const kw = encodeURIComponent(`${shoot},${loc},${sty}`);
   const t = Date.now();
   return [
     `https://source.unsplash.com/600x800/?${kw}&sig=${t}1`,
@@ -995,17 +1020,41 @@ function getUnsplashUrls() {
 
 // ─── AI OUTFITS ───────────────────────────────────────────────────────────
 const STATIC_OUTFITS = {
-  Familie: [
+  'Mann': [
+    {piece:"Leinenhemd",details:"Slim Fit, naturweißes Leinen, leicht strukturiert",color_hex:"#f0e8dc"},
+    {piece:"Chino",details:"Slim Fit, sandfarben, Baumwoll-Twill",color_hex:"#c0a882"},
+    {piece:"Derby-Schnürschuh",details:"Vollleder, cognac, rahmengenäht",color_hex:"#a07050"},
+    {piece:"Stoffgürtel",details:"Gewebter Baumwolle, naturbraun",color_hex:"#8c6c42"},
+  ],
+  'Frau': [
+    {piece:"Leinenkleid",details:"A-Linie, Crinkle-Leinen, nude, midi",color_hex:"#d4bfa3"},
+    {piece:"Weite Bluse",details:"Oversize, Musselin, cremeweiß, V-Ausschnitt",color_hex:"#f0e8dc"},
+    {piece:"Weite Hose",details:"Crêpe, hohe Taille, sandfarben",color_hex:"#c8b090"},
+    {piece:"Sandalen",details:"Leder, flach, naturbraun, Riemchen",color_hex:"#a0856a"},
+  ],
+  'Pärchen (Frau + Mann)': [
+    {piece:"Kleid Frau",details:"Midi, fließend, Viskose, ivory",color_hex:"#f0e8dc"},
+    {piece:"Leinenhemd Mann",details:"Slim Fit, Leinen, sandfarben, Ärmel gerollt",color_hex:"#c0a882"},
+    {piece:"Hose Mann",details:"Slim Chino, cognac, Baumwoll-Twill",color_hex:"#a07050"},
+    {piece:"Sandalen Frau",details:"Flach, Leder, naturbraun, Riemchen",color_hex:"#a0856a"},
+  ],
+  'Familie (Mama, Papa, Kind)': [
     {piece:"Leinenkleid Mama",details:"Weicher Fall, Crinkle-Leinen, nude",color_hex:"#d4bfa3"},
-    {piece:"Chino Papa",details:"Slim Fit, sandfarbenes Baumwoll-Twill",color_hex:"#c0a882"},
-    {piece:"Smock-Kleid Kind",details:"Rüschendetail, zartes Blumenmuster",color_hex:"#e8d5c0"},
+    {piece:"Leinenhemd Papa",details:"Slim Fit, sandfarbenes Leinen",color_hex:"#c0a882"},
+    {piece:"Smock-Kleid Kind",details:"Rüschendetail, zartes Muster, ivory",color_hex:"#e8d5c0"},
     {piece:"Sandalen Familie",details:"Leder, flach, naturbraun",color_hex:"#a0856a"},
   ],
-  Newborn: [
+  'Mama mit Baby': [
     {piece:"Strick-Wrap Mama",details:"Oversize, Merinowolle, crème",color_hex:"#f0e8dc"},
+    {piece:"Wickelbluse Mama",details:"Fließend, Viskose, sandfarben, stillfreundlich",color_hex:"#d4bfa3"},
     {piece:"Mousseline-Tuch Baby",details:"Weicher Stoff, natürliche Töne",color_hex:"#e5d5c5"},
-    {piece:"Cardigan Papa",details:"Leichter Strick, oatmeal",color_hex:"#d8c8b0"},
-    {piece:"Weiche Socken Baby",details:"Baumwolle, ivory mit Rüsche",color_hex:"#f5ede0"},
+    {piece:"Weiche Söckchen Baby",details:"Bio-Baumwolle, ivory mit Rüsche",color_hex:"#f5ede0"},
+  ],
+  'schwangere Frau': [
+    {piece:"Umstandskleid",details:"Empire-Schnitt, Jersey, sandfarben, fließend",color_hex:"#d4bfa3"},
+    {piece:"Wrap-Kleid",details:"Gewickelt, Viskose, nude, dehnbar",color_hex:"#c8b090"},
+    {piece:"Oversize-Bluse",details:"Leinen, cremeweiß, weit geschnitten",color_hex:"#f0e8dc"},
+    {piece:"Flache Sandalen",details:"Leder, cognac, bequem, Riemchen",color_hex:"#a07050"},
   ],
   default: [
     {piece:"Leinenbluse",details:"Oversize, Leinen, naturweiß",color_hex:"#f0e8dc"},
@@ -1018,11 +1067,24 @@ const STATIC_OUTFITS = {
 async function fetchOutfits() {
   if(!state.useAI) return getStaticOutfits();
   const paletteStr = state.palette.join(', ');
-  const prompt = `Du bist ein Fashion-Stylist für professionelle Fotoshootings.
-Shooting: ${state.shooting}, Location: ${state.location}, Stil: ${state.style}, Farbpalette: ${paletteStr}.
-Erstelle 4 Outfit-Vorschläge passend zu diesem Shooting. Bei Familie/Paar: unterschiedliche Outfits pro Person (Mama, Papa, Kind etc.).
-Antworte NUR mit einem JSON-Array, kein Markdown, kein Text davor oder danach:
-[{"piece":"Name","details":"Material, Schnitt (max 12 Wörter)","color_hex":"#xxxxxx"}]`;
+  const prompt = `Du bist ein professioneller Fashion-Stylist für Fotoshootings.
+
+Kontext:
+- Personen: ${state.persons}
+- Shooting-Art: ${state.shooting}
+- Location: ${state.location}
+- Stilrichtung: ${state.style}
+- Farbpalette: ${paletteStr}
+
+Aufgabe: Erstelle EXAKT 4 Outfit-Vorschläge, die perfekt zu den oben genannten Personen passen.
+WICHTIG: Die Outfits MÜSSEN zum Geschlecht und der Anzahl der Personen passen.
+- Bei einer einzelnen Frau: 4 Kleidungsstücke / Accessoires für sie
+- Bei einem einzelnen Mann: 4 männliche Kleidungsstücke (Hemd, Hose, Schuhe, Accessoire)
+- Bei Pärchen/Gruppen: Outfits für jede Person einzeln benennen (z.B. "Kleid Frau", "Hemd Mann")
+- KEINE Kleider für Männer, KEINE maskulinen Teile für Frauen
+
+Antworte NUR mit einem JSON-Array, absolut kein Text oder Markdown davor/danach:
+[{"piece":"Bezeichnung Person + Teil","details":"Material, Schnitt, max 10 Wörter","color_hex":"#xxxxxx"}]`;
   try {
     const res = await fetch('/api/clothing', {
       method: 'POST',
@@ -1042,7 +1104,7 @@ Antworte NUR mit einem JSON-Array, kein Markdown, kein Text davor oder danach:
   return getStaticOutfits();
 }
 function getStaticOutfits() {
-  return STATIC_OUTFITS[state.shooting] || STATIC_OUTFITS.default;
+  return STATIC_OUTFITS[state.persons] || STATIC_OUTFITS[state.shooting] || STATIC_OUTFITS.default;
 }
 
 // ─── GENERATE ─────────────────────────────────────────────────────────────
